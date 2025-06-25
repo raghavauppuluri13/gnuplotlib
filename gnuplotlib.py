@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 r'''a gnuplot-based plotting backend for numpy
 
 * SYNOPSIS
@@ -1108,8 +1107,6 @@ invoked when we execute that file.
 
 '''
 
-
-
 from __future__ import print_function
 
 import subprocess
@@ -1122,8 +1119,7 @@ import numbers
 import numpy as np
 import numpysane as nps
 
-
-gnuplot_executable='gnuplot'
+gnuplot_executable = 'gnuplot'
 
 # setup.py assumes the version is a simple string in '' quotes
 __version__ = '0.45'
@@ -1133,42 +1129,83 @@ __version__ = '0.45'
 #
 # In a "normal" plot (not multiplot), the plot options are a union of the
 # process and subplot options. There's exactly one subplot
-knownProcessOptions = frozenset(('cmds',   # both process and subplot
-                                 'set',    # both process and subplot
-                                 'unset',  # both process and subplot
-                                 'dump', 'ascii', 'log', 'notest', 'wait',
-                                 'hardcopy', 'terminal', 'output',
-                                 'multiplot'))
-knownSubplotOptions   = frozenset(('cmds',   # both process and subplot
-                                   'set',    # both process and subplot
-                                   'unset',  # both process and subplot
-                                   '3d',
-                                   'square', 'square_xy', 'square-xy', 'squarexy',
-                                   'title',
-                                   'with',   # both a plot option and a curve option
-                                   'rgbimage',
-                                   'equation', 'equation_above', 'equation_below',
-                                   'xmax',  'xmin',  'xrange',  'xinv',  'xlabel',
-                                   'x2max', 'x2min', 'x2range', 'x2inv', 'x2label',
-                                   'ymax',  'ymin',  'yrange',  'yinv',  'ylabel',
-                                   'y2max', 'y2min', 'y2range', 'y2inv', 'y2label',
-                                   'zmax',  'zmin',  'zrange',  'zinv',  'zlabel',
-                                   'cbmax', 'cbmin', 'cbrange', 'cblabel'))
+knownProcessOptions = frozenset((
+    'cmds',  # both process and subplot
+    'set',  # both process and subplot
+    'unset',  # both process and subplot
+    'dump',
+    'ascii',
+    'log',
+    'notest',
+    'wait',
+    'hardcopy',
+    'terminal',
+    'output',
+    'multiplot'))
+knownSubplotOptions = frozenset((
+    'cmds',  # both process and subplot
+    'set',  # both process and subplot
+    'unset',  # both process and subplot
+    '3d',
+    'square',
+    'square_xy',
+    'square-xy',
+    'squarexy',
+    'title',
+    'with',  # both a plot option and a curve option
+    'rgbimage',
+    'equation',
+    'equation_above',
+    'equation_below',
+    'xmax',
+    'xmin',
+    'xrange',
+    'xinv',
+    'xlabel',
+    'x2max',
+    'x2min',
+    'x2range',
+    'x2inv',
+    'x2label',
+    'ymax',
+    'ymin',
+    'yrange',
+    'yinv',
+    'ylabel',
+    'y2max',
+    'y2min',
+    'y2range',
+    'y2inv',
+    'y2label',
+    'zmax',
+    'zmin',
+    'zrange',
+    'zinv',
+    'zlabel',
+    'cbmax',
+    'cbmin',
+    'cbrange',
+    'cblabel'))
 
-knownCurveOptions = frozenset(( 'with',   # both a plot option and a curve option
-                                'legend', 'axes', 'y2', 'tuplesize', 'using',
-                                'histogram', 'binwidth'))
+knownCurveOptions = frozenset((
+    'with',  # both a plot option and a curve option
+    'legend',
+    'axes',
+    'y2',
+    'tuplesize',
+    'using',
+    'histogram',
+    'binwidth'))
 
 knownInteractiveTerminals = frozenset(('x11', 'wxt', 'qt', 'aquaterm'))
 
-knownAxes = frozenset(('x1y1','x1y2','x2y1','x2y2'))
+knownAxes = frozenset(('x1y1', 'x1y2', 'x2y1', 'x2y2'))
 
-
-keysAcceptingIterable = frozenset(('cmds','set','unset','equation','equation_below','equation_above'))
+keysAcceptingIterable = frozenset(
+    ('cmds', 'set', 'unset', 'equation', 'equation_below', 'equation_above'))
 
 # when testing plots with ASCII i/o, this is the unit of test data
 testdataunit_ascii = 10
-
 
 
 def _getGnuplotFeatures():
@@ -1189,19 +1226,20 @@ def _getGnuplotFeatures():
                                              stderr=subprocess.STDOUT,
                                              env=env).decode()
     except FileNotFoundError:
-        print("Couldn't run gnuplot. Is it installed? Is it findable in the PATH?",
-              file=sys.stderr)
+        print(
+            "Couldn't run gnuplot. Is it installed? Is it findable in the PATH?",
+            file=sys.stderr)
         raise
 
-    features = set( re.findall(r'--([a-zA-Z0-9_]+)', helpstring) )
-
+    features = set(re.findall(r'--([a-zA-Z0-9_]+)', helpstring))
 
     # then I try to set a square aspect ratio for 3D to see if it works
     equal_3d_works = True
     try:
-        out = subprocess.check_output((gnuplot_executable, '-e', "set view equal"),
-                                      stderr=subprocess.STDOUT,
-                                      env=env).decode()
+        out = subprocess.check_output(
+            (gnuplot_executable, '-e', "set view equal"),
+            stderr=subprocess.STDOUT,
+            env=env).decode()
         if re.search(r"(undefined variable)|(unrecognized option)", out, re.I):
             equal_3d_works = False
     except:
@@ -1214,7 +1252,6 @@ def _getGnuplotFeatures():
 
 
 features = _getGnuplotFeatures()
-
 
 
 def _normalize_options_dict(d):
@@ -1241,28 +1278,36 @@ dict passed-in by the user, and outputs a massaged dict with these changes:
         add_plot_option(d2, key, d[key])
     return d2
 
-class GnuplotlibError(Exception):
-    def __init__(self, err): self.err = err
-    def __str__(self):       return self.err
 
+class GnuplotlibError(Exception):
+
+    def __init__(self, err):
+        self.err = err
+
+    def __str__(self):
+        return self.err
 
 
 def _data_dump_only(processOptions):
     '''Returns True if we're dumping a script, NOT actually running gnuplot'''
+
     def is_gp():
         h = processOptions.get('hardcopy')
         return \
             type(h) is str and \
             re.match(r".*\.gp$", h)
+
     return \
         processOptions.get('dump') or \
         processOptions.get('terminal') == 'gp' or \
         is_gp()
 
+
 def is_knownInteractiveTerminal(t):
     # I check the first word in the terminal string. This is the terminal type.
     # Everything else is options
     return t.split(maxsplit=1)[0] in knownInteractiveTerminals
+
 
 def _split_dict(d, *keysets):
     r'''Given a dict and some sets of keys, split into sub-dicts with keys
@@ -1278,7 +1323,7 @@ def _split_dict(d, *keysets):
     for k in d:
 
         for i in range(len(keysets)):
-            keyset,setname = keysets[i]
+            keyset, setname = keysets[i]
 
             if k in keyset:
                 dicts[i][k] = d[k]
@@ -1290,10 +1335,11 @@ def _split_dict(d, *keysets):
     return dicts
 
 
-def _get_cmds__setunset(cmds,options):
+def _get_cmds__setunset(cmds, options):
     for setunset in ('set', 'unset'):
         if setunset in options:
-            cmds += [ setunset + ' ' + setting for setting in options[setunset] ]
+            cmds += [setunset + ' ' + setting for setting in options[setunset]]
+
 
 def _massageProcessOptionsAndGetCmds(processOptions):
     r'''Compute commands to set the given process options, and massage the input, as
@@ -1312,7 +1358,8 @@ def _massageProcessOptionsAndGetCmds(processOptions):
     # "hardcopy" and "output" are synonyms. Use "output" from this point on
     if processOptions.get('hardcopy') is not None:
         if processOptions.get('output') is not None:
-            raise GnuplotlibError("Pass in at most ONE of 'hardcopy' and 'output'")
+            raise GnuplotlibError(
+                "Pass in at most ONE of 'hardcopy' and 'output'")
         processOptions['output'] = processOptions['hardcopy']
         del processOptions['hardcopy']
 
@@ -1322,16 +1369,21 @@ def _massageProcessOptionsAndGetCmds(processOptions):
         outputfile = processOptions['output']
         m = re.search(r'\.(eps|ps|pdf|png|svg|gp)$', outputfile)
         if not m:
-            raise GnuplotlibError("Only .eps, .ps, .pdf, .png, .svg and .gp output filenames are supported if no 'terminal' plot option is given")
+            raise GnuplotlibError(
+                "Only .eps, .ps, .pdf, .png, .svg and .gp output filenames are supported if no 'terminal' plot option is given"
+            )
 
         outputfileType = m.group(1)
 
-        terminalOpts = { 'eps': 'postscript noenhanced solid color eps',
-                         'ps':  'postscript noenhanced solid color landscape 12',
-                         'pdf': 'pdfcairo noenhanced solid color font ",12" size 8in,6in',
-                         'png': 'pngcairo noenhanced size 1024,768 transparent crop font ",12"',
-                         'svg': 'svg noenhanced solid dynamic size 800,600 font ",14"',
-                         'gp':  'gp'}
+        terminalOpts = {
+            'eps': 'postscript noenhanced solid color eps',
+            'ps': 'postscript noenhanced solid color landscape 12',
+            'pdf': 'pdfcairo noenhanced solid color font ",12" size 8in,6in',
+            'png':
+            'pngcairo noenhanced size 1024,768 transparent crop font ",12"',
+            'svg': 'svg noenhanced solid dynamic size 800,600 font ",14"',
+            'gp': 'gp'
+        }
 
         processOptions['terminal'] = terminalOpts[outputfileType]
 
@@ -1339,10 +1391,12 @@ def _massageProcessOptionsAndGetCmds(processOptions):
         if is_knownInteractiveTerminal(processOptions['terminal']):
             # known interactive terminal
             if processOptions.get('output', '') != '':
-                sys.stderr.write("Warning: requested a known-interactive gnuplot terminal AND an output file. Is this REALLY what you want?\n")
+                sys.stderr.write(
+                    "Warning: requested a known-interactive gnuplot terminal AND an output file. Is this REALLY what you want?\n"
+                )
 
         if processOptions['terminal'] == 'gp':
-            processOptions['dump'  ] = 1
+            processOptions['dump'] = 1
             processOptions['notest'] = 1
 
     if 'cmds' in processOptions: cmds += processOptions['cmds']
@@ -1357,7 +1411,8 @@ def _massageSubplotOptionsAndGetCmds(subplotOptions):
 
     for option in subplotOptions:
         if not option in knownSubplotOptions:
-            raise GnuplotlibError('"{}" is not a valid subplot option'.format(option))
+            raise GnuplotlibError(
+                '"{}" is not a valid subplot option'.format(option))
 
     # set some defaults
     # plot with lines and points by default
@@ -1372,7 +1427,9 @@ def _massageSubplotOptionsAndGetCmds(subplotOptions):
         if subplotOptions.get(opt):
             Nsquare += 1
     if Nsquare > 1:
-        raise GnuplotlibError("At most 1 'square...' option could be enabled. Instead I got {}".format(Nsquare))
+        raise GnuplotlibError(
+            "At most 1 'square...' option could be enabled. Instead I got {}".
+            format(Nsquare))
 
     # square_xy and square-xy and squarexy are synonyms. Map all these to
     # square_xy
@@ -1386,14 +1443,15 @@ def _massageSubplotOptionsAndGetCmds(subplotOptions):
         if not 'equal_3d' in features and \
            ( subplotOptions.get('square_xy') or subplotOptions.get('square') ):
 
-            sys.stderr.write("Your gnuplot doesn't support square aspect ratios for 3D plots, so I'm ignoring that\n")
+            sys.stderr.write(
+                "Your gnuplot doesn't support square aspect ratios for 3D plots, so I'm ignoring that\n"
+            )
             if 'square_xy' in subplotOptions: del subplotOptions['square_xy']
-            if 'square'    in subplotOptions: del subplotOptions['square'   ]
+            if 'square' in subplotOptions: del subplotOptions['square']
     else:
         # In 2D square_xy is the same as square
         if subplotOptions.get('square_xy'):
             subplotOptions['square'] = True
-
 
     # grid on by default
     cmds = ['set grid']
@@ -1401,8 +1459,8 @@ def _massageSubplotOptionsAndGetCmds(subplotOptions):
     # set the curve labels
     for axis in ('x', 'x2', 'y', 'y2', 'z', 'cb'):
         if axis + 'label' in subplotOptions:
-            cmds.append('set {axis}label "{label}"'.format(axis = axis,
-                                                           label = subplotOptions[axis + 'label']))
+            cmds.append('set {axis}label "{label}"'.format(
+                axis=axis, label=subplotOptions[axis + 'label']))
 
     have_set_range = set()
     for axis in ('x', 'x2', 'y', 'y2', 'z', 'cb'):
@@ -1414,7 +1472,7 @@ def _massageSubplotOptionsAndGetCmds(subplotOptions):
             have_set_range.add(axis)
 
     have_set_link = set()
-    for axis in ('x','y'):
+    for axis in ('x', 'y'):
         if subplotOptions.get('set') and \
            any ( re.match(rf" *link +{axis}", s) for s in subplotOptions['set'] ):
             have_set_link.add(axis)
@@ -1422,9 +1480,8 @@ def _massageSubplotOptionsAndGetCmds(subplotOptions):
              any ( re.search(rf"^ *set +link +{axis}", s, flags=re.M) for s in subplotOptions.get('cmds') ):
             have_set_link.add(axis)
 
-
     # set the plot bounds
-    ranges         = dict()
+    ranges = dict()
     ranges_default = dict()
     for axis in ('x', 'x2', 'y', 'y2', 'z', 'cb'):
         # I deal with range bounds here. These can be given for the various
@@ -1454,28 +1511,35 @@ def _massageSubplotOptionsAndGetCmds(subplotOptions):
             ranges_default[axis] = True
             continue
 
-        opt_min   = subplotOptions.get( axis + 'min'   )
-        opt_max   = subplotOptions.get( axis + 'max'   )
-        opt_range = subplotOptions.get( axis + 'range' )
-        opt_inv   = subplotOptions.get( axis + 'inv'   )
+        opt_min = subplotOptions.get(axis + 'min')
+        opt_max = subplotOptions.get(axis + 'max')
+        opt_range = subplotOptions.get(axis + 'range')
+        opt_inv = subplotOptions.get(axis + 'inv')
 
-        if (opt_min is not None or opt_max is not None) and opt_range is not None:
-            raise GnuplotlibError("{0}min/{0}max and {0}range are mutually exclusive".format(axis))
+        if (opt_min is not None
+                or opt_max is not None) and opt_range is not None:
+            raise GnuplotlibError(
+                "{0}min/{0}max and {0}range are mutually exclusive".format(
+                    axis))
 
         # if we have a range, copy it to min/max and just work with those
         if opt_range is not None:
             if not isinstance(opt_range, (list, tuple)):
-                opt_range = [ None if x == '*' else float(x) for x in opt_range.split(':')]
+                opt_range = [
+                    None if x == '*' else float(x)
+                    for x in opt_range.split(':')
+                ]
             if len(opt_range) != 2:
-                raise GnuplotlibError('{}range should have exactly 2 elements'.format(axis))
-            opt_min,opt_max = opt_range
+                raise GnuplotlibError(
+                    '{}range should have exactly 2 elements'.format(axis))
+            opt_min, opt_max = opt_range
             opt_range = None
 
         # apply the axis inversion. It's only needed if we're given both
         # bounds and they aren't flipped
         if opt_inv:
             if opt_min is not None and opt_max is not None and opt_min < opt_max:
-                opt_min,opt_max = opt_max,opt_min
+                opt_min, opt_max = opt_max, opt_min
 
         ranges[axis] = \
                      "set {}range [{}:{}] {}reverse". \
@@ -1492,13 +1556,15 @@ def _massageSubplotOptionsAndGetCmds(subplotOptions):
     # other axis will control it. Otherwise we hit
     # https://sourceforge.net/p/gnuplot/bugs/2783/ and surprising behaviors can
     # be triggered
-    for axis in ('x','y'):
+    for axis in ('x', 'y'):
         axis2 = f"{axis}2"
         if axis in have_set_link:
             if axis  in ranges and not ranges_default[axis ] and \
                axis2 in ranges and not ranges_default[axis2]:
-                raise GnuplotlibError(f"We're linking {axis},{axis2} so the range of at most one of these may be given")
-            if axis in ranges and ranges_default[axis ]:
+                raise GnuplotlibError(
+                    f"We're linking {axis},{axis2} so the range of at most one of these may be given"
+                )
+            if axis in ranges and ranges_default[axis]:
                 del ranges[axis]
             if axis2 in ranges and ranges_default[axis2]:
                 del ranges[axis2]
@@ -1530,10 +1596,10 @@ class gnuplotlib:
     def __init__(self, **plotOptions):
 
         # some defaults
-        self._dumpPipe        = None
-        self.t0               = time.time()
+        self._dumpPipe = None
+        self.t0 = time.time()
         self.checkpoint_stuck = False
-        self.sync_count       = 1
+        self.sync_count = 1
 
         plotOptions = _normalize_options_dict(plotOptions)
 
@@ -1543,7 +1609,8 @@ class gnuplotlib:
                         (knownSubplotOptions, 'subplot'),
                         (knownProcessOptions, 'process'))
 
-        self.processOptionsCmds = _massageProcessOptionsAndGetCmds(self.processOptions)
+        self.processOptionsCmds = _massageProcessOptionsAndGetCmds(
+            self.processOptions)
 
         if _data_dump_only(self.processOptions):
             self.gnuplotProcess = None
@@ -1552,13 +1619,12 @@ class gnuplotlib:
             # if we already have a gnuplot process, reset it. Otherwise make a new
             # one
             if hasattr(self, 'gnuplotProcess') and self.gnuplotProcess:
-                self._printGnuplotPipe( "unset multiplot\nreset\nset output\n" )
+                self._printGnuplotPipe("unset multiplot\nreset\nset output\n")
                 self._checkpoint()
             else:
                 self.gnuplotProcess = None
                 self._startgnuplot()
                 self._logEvent("_startgnuplot() finished")
-
 
     def _startgnuplot(self):
 
@@ -1575,7 +1641,6 @@ class gnuplotlib:
             self.fdDupSTDOUT = os.dup(sys.stdout.fileno())
         except:
             self.fdDupSTDOUT = None
-
 
         # I need this to make fdDupSTDOUT available to the child gnuplot. This
         # would happen by default, but in python3 I need to do this extra thing
@@ -1615,17 +1680,16 @@ class gnuplotlib:
             )
 
         # What is the default terminal?
-        self._printGnuplotPipe( "show terminal\n" )
+        self._printGnuplotPipe("show terminal\n")
         errorMessage, warnings = self._checkpoint('printwarnings')
         m = re.match(r"terminal type is +(.+?) +", errorMessage, re.I)
         if m:
             self.terminal_default = m.group(1)
         else:
-            self.terminal_default = None
+            self.terminal_default = 'x11'
 
         # save the default terminal
         self._safelyWriteToPipe("set terminal push", 'terminal')
-
 
     def __del__(self):
         if hasattr(self, 'gnuplotProcess') and self.gnuplotProcess:
@@ -1653,61 +1717,60 @@ class gnuplotlib:
                     pass
                 self.fdDupSTDOUT = None
 
-
-
-
-
-
     def _safelyWriteToPipe(self, input, flags=''):
 
         def barfOnDisallowedCommands(line):
             # I use STDERR as the backchannel, so I don't allow any "set print"
             # commands, since those can disable that
-            if re.match(r'''(?: .*;)?       # optionally wait for a semicolon
+            if re.match(
+                    r'''(?: .*;)?       # optionally wait for a semicolon
                             \s*
-                            set\s+print\b''',
-                        line, re.X):
-                raise GnuplotlibError("Please don't 'set print' since I use gnuplot's STDERR for error detection")
+                            set\s+print\b''', line, re.X):
+                raise GnuplotlibError(
+                    "Please don't 'set print' since I use gnuplot's STDERR for error detection"
+                )
 
-            if re.match(r'''(?: .*;)?       # optionally wait for a semicolon
+            if re.match(
+                    r'''(?: .*;)?       # optionally wait for a semicolon
                             \s*
-                             print\b''',
-                        line, re.X):
-                 raise GnuplotlibError("Please don't ask gnuplot to 'print' anything since this can confuse my error detection")
+                             print\b''', line, re.X):
+                raise GnuplotlibError(
+                    "Please don't ask gnuplot to 'print' anything since this can confuse my error detection"
+                )
 
-
-            if re.match(r'''(?: .*;)?       # optionally wait for a semicolon
+            if re.match(
+                    r'''(?: .*;)?       # optionally wait for a semicolon
                             \s*
-                            set\s+terminal\b''',
-                        line, re.X) and flags != 'terminal':
-                raise GnuplotlibError("Please do not 'set terminal' manually. Use the 'terminal' plot option instead")
+                            set\s+terminal\b''', line,
+                    re.X) and flags != 'terminal':
+                raise GnuplotlibError(
+                    "Please do not 'set terminal' manually. Use the 'terminal' plot option instead"
+                )
 
-            if re.match(r'''(?: .*;)?       # optionally wait for a semicolon
+            if re.match(
+                    r'''(?: .*;)?       # optionally wait for a semicolon
                             \s*
-                            set\s+output\b''',
-                        line, re.X) and not re.match('output', flags):
-                raise GnuplotlibError("Please do not 'set output' manually. Use the 'output' plot option instead")
+                            set\s+output\b''', line,
+                    re.X) and not re.match('output', flags):
+                raise GnuplotlibError(
+                    "Please do not 'set output' manually. Use the 'output' plot option instead"
+                )
 
-
-
-
-        if not isinstance(input, (list,tuple)):
-            input = (input,)
+        if not isinstance(input, (list, tuple)):
+            input = (input, )
 
         for cmd in input:
             barfOnDisallowedCommands(cmd)
 
-            self._printGnuplotPipe( cmd + '\n' )
+            self._printGnuplotPipe(cmd + '\n')
 
             errorMessage, warnings = self._checkpoint('printwarnings')
             if errorMessage:
-                barfmsg = "Gnuplot error: '\n{}\n' while sending cmd '{}'\n".format(errorMessage, cmd)
+                barfmsg = "Gnuplot error: '\n{}\n' while sending cmd '{}'\n".format(
+                    errorMessage, cmd)
                 if warnings:
                     barfmsg += "Warnings:\n" + str(warnings)
                 raise GnuplotlibError(barfmsg)
-
-
-
 
     def _gnuplotStdin(self):
         if self.gnuplotProcess:
@@ -1735,10 +1798,10 @@ class gnuplotlib:
 
     def _printGnuplotPipe(self, string):
 
-        self._gnuplotStdin().write( string.encode() )
-        self._logEvent("Sent to child process {} bytes ==========\n{}=========================".
-                       format(len(string), string))
-
+        self._gnuplotStdin().write(string.encode())
+        self._logEvent(
+            "Sent to child process {} bytes ==========\n{}========================="
+            .format(len(string), string))
 
     def _receive_until_checkpoint_or_timeout(self, checkpoint, waitforever):
 
@@ -1751,15 +1814,17 @@ class gnuplotlib:
 
             self._logEvent("Trying to read byte from gnuplot")
 
-            rlist,wlist,xlist = select.select([self.gnuplotProcess.stderr],[], [],
-                                              None if waitforever else 15)
+            rlist, wlist, xlist = select.select([self.gnuplotProcess.stderr],
+                                                [], [],
+                                                None if waitforever else 15)
 
             if not rlist:
                 self._logEvent("Gnuplot read timed out")
                 self.checkpoint_stuck = True
 
                 raise GnuplotlibError(
-                    r'''Gnuplot process no longer responding. This shouldn't happen... Is your X connection working?''')
+                    r'''Gnuplot process no longer responding. This shouldn't happen... Is your X connection working?'''
+                )
 
             # read a byte. I'd like to read "as many bytes as are
             # available", but I don't know how to this in a very portable
@@ -1773,14 +1838,16 @@ class gnuplotlib:
                 returncode = self.gnuplotProcess.poll()
                 if returncode is not None:
                     # Yep. It died.
-                    raise Exception(f"gnuplot child died. returncode = {returncode}")
+                    raise Exception(
+                        f"gnuplot child died. returncode = {returncode}")
                 self._logEvent("read() returned no data")
                 continue
 
             byte = byte.decode()
             fromerr += byte
-            self._logEvent("Read byte '{}' ({}) from gnuplot child process".format(byte,
-                                                                                   hex(ord(byte))))
+            self._logEvent(
+                "Read byte '{}' ({}) from gnuplot child process".format(
+                    byte, hex(ord(byte))))
 
         self._logEvent(f"Read string from gnuplot: '{fromerr}'")
         return fromerr
@@ -1799,36 +1866,43 @@ class gnuplotlib:
         # yet arrived. I thus print out a checkpoint message and keep reading the
         # child's STDERR pipe until I get that message back. Any errors would have
         # been printed before this
-        waitforever                = re.search(r'waitforever',                flags)
-        final                      = re.search(r'final',                      flags)
-        printwarnings              = re.search(r'printwarnings',              flags)
-        ignore_known_test_failures = re.search(r'ignore_known_test_failures', flags)
+        waitforever = re.search(r'waitforever', flags)
+        final = re.search(r'final', flags)
+        printwarnings = re.search(r'printwarnings', flags)
+        ignore_known_test_failures = re.search(r'ignore_known_test_failures',
+                                               flags)
 
         # I always checkpoint() before exiting. Even if notest==1. Without this
         # 'set terminal dumb' plots don't end up rendering anything: we kill the
         # process before it has time to make the plot
-        if self.processOptions.get('notest') and not waitforever and not final and not printwarnings:
+        if self.processOptions.get(
+                'notest'
+        ) and not waitforever and not final and not printwarnings:
             return None, None
 
         checkpoint = f"gpsync{self.sync_count}xxx"
         self.sync_count += 1
 
-        self._printGnuplotPipe( 'print "{}"\n'.format(checkpoint) )
+        self._printGnuplotPipe('print "{}"\n'.format(checkpoint))
 
         # if no error pipe exists, we can't check for errors, so we're done.
         # Usually happens if(we're dumping)
         if not self.gnuplotProcess or not self.gnuplotProcess.stderr:
-            return '',[]
+            return '', []
 
-        fromerr = self._receive_until_checkpoint_or_timeout(checkpoint, waitforever)
+        fromerr = self._receive_until_checkpoint_or_timeout(
+            checkpoint, waitforever)
 
         m = re.search(rf'\s*(.*?)\s*{checkpoint}$', fromerr, re.M + re.S)
         if m is None:
-            raise Exception(f"checkpoint '{checkpoint}' not found in received string '{fromerr}'")
+            raise Exception(
+                f"checkpoint '{checkpoint}' not found in received string '{fromerr}'"
+            )
         fromerr = m.group(1)
 
-        warningre = re.compile(r'^\s*(.*?(?:warning|undefined).*?)\s*$', re.M + re.I)
-        warnings  = warningre.findall(fromerr)
+        warningre = re.compile(r'^\s*(.*?(?:warning|undefined).*?)\s*$',
+                               re.M + re.I)
+        warnings = warningre.findall(fromerr)
 
         if printwarnings:
             for w in warnings:
@@ -1851,55 +1925,54 @@ class gnuplotlib:
 
             r = re.compile(r'''^gnuplot>\s*(?:{}|e\b).*$                  # report of the actual invalid command
                                \n^\s+\^\s*$                               # ^ mark pointing to where the error happened
-                               \n^.*invalid\s+command.*$'''               # actual 'invalid command' complaint
+                               \n^.*invalid\s+command.*$'''# actual 'invalid command' complaint
                            .format(testdataunit_ascii),
                            re.X + re.M)
             fromerr = r.sub('', fromerr)
 
             # ignore a simple 'invalid range' error observed when, say only the
             # xmin bound is set and all the data is below it
-            r = re.compile(r'''^gnuplot>\s*plot.*$                        # the test plot command
+            r = re.compile(
+                r'''^gnuplot>\s*plot.*$                        # the test plot command
                                \n^\s+\^\s*$                               # ^ mark pointing to where the error happened
-                               \n^.*range\s*is\s*invalid.*$''',           # actual 'invalid range' complaint
-                           re.X + re.M)
+                               \n^.*range\s*is\s*invalid.*$''',  # actual 'invalid range' complaint
+                re.X + re.M)
             fromerr = r.sub('', fromerr)
 
             # fancier plots show a different 'invalid range' error. Observed when xmin
             # > xmax (inverted x axis) and when there's out-of-bounds data
-            r = re.compile(r'''^gnuplot>\s*plot.*$                        # the test plot command
+            r = re.compile(
+                r'''^gnuplot>\s*plot.*$                        # the test plot command
                                \n^\s+\^\s*$                               # ^ mark pointing to where the error happened
-                               \n^.*all\s*points.*undefined.*$''',        # actual 'all points undefined' complaint
-                           re.X + re.M)
+                               \n^.*all\s*points.*undefined.*$''',  # actual 'all points undefined' complaint
+                re.X + re.M)
             fromerr = r.sub('', fromerr)
 
             # Newer gnuplot sometimes says 'x_min should not equal x_max!' when
             # complaining about ranges. Ignore those here
-            r = re.compile(r'^.*_min should not equal .*_max!.*$',        # actual 'min != max' complaint
-                           re.M)
+            r = re.compile(
+                r'^.*_min should not equal .*_max!.*$',  # actual 'min != max' complaint
+                re.M)
             fromerr = r.sub('', fromerr)
 
             # Labels or titles that are too long can complain about stuff being
             # too small to hold plot
-            r = re.compile(r'''^.*too small to hold plot.*$''',
-                           re.M)
+            r = re.compile(r'''^.*too small to hold plot.*$''', re.M)
             fromerr = r.sub('', fromerr)
-            r = re.compile(r'''^.*Check plot boundary.*$''',
-                           re.M)
+            r = re.compile(r'''^.*Check plot boundary.*$''', re.M)
             fromerr = r.sub('', fromerr)
 
             # 'with image' plots can complain about an uninteresting domain. Exact error:
             # GNUPLOT (plot_image):  Image grid must be at least 4 points (2 x 2).
-            r = re.compile(r'^.*Image grid must be at least.*$',
-                           re.X + re.M)
+            r = re.compile(r'^.*Image grid must be at least.*$', re.X + re.M)
             fromerr = r.sub('', fromerr)
 
         # I've now read all the data up-to the checkpoint. Strip out all the warnings
-        fromerr = warningre.sub('',fromerr)
+        fromerr = warningre.sub('', fromerr)
 
         fromerr = fromerr.strip()
 
         return fromerr, warnings
-
 
     def _logEvent(self, event):
 
@@ -1909,10 +1982,10 @@ class gnuplotlib:
 
         t = time.time() - self.t0
 
-        print( "==== PID {} at t={:.4f}: {}".format(self.gnuplotProcess.pid if self.gnuplotProcess else '(none)',
-                                                   t, event),
-               file=sys.stderr )
-
+        print("==== PID {} at t={:.4f}: {}".format(
+            self.gnuplotProcess.pid if self.gnuplotProcess else '(none)', t,
+            event),
+              file=sys.stderr)
 
     def _plotCurveInASCII(self, curve):
         '''Should this curve be plotted in ascii?
@@ -1925,7 +1998,6 @@ class gnuplotlib:
             self.processOptions.get('ascii') or \
             ( curve.get('with') and re.match(" *labels\\b", curve['with'], re.I) )
 
-
     def _sendCurve(self, curve):
 
         pipe = self._gnuplotStdin()
@@ -1933,10 +2005,12 @@ class gnuplotlib:
         if self._plotCurveInASCII(curve):
 
             if curve.get('matrix'):
-                np.savetxt(pipe,
-                           nps.glue(*curve['_data'], axis=-2).astype(np.float64,copy=False),
-                           '%s')
-                self._printGnuplotPipe( "\ne\n" )
+                np.savetxt(
+                    pipe,
+                    nps.glue(*curve['_data'], axis=-2).astype(np.float64,
+                                                              copy=False),
+                    '%s')
+                self._printGnuplotPipe("\ne\n")
             else:
                 # Previously I was doing this:
                 #     np.savetxt( pipe,
@@ -1951,6 +2025,7 @@ class gnuplotlib:
                 # probably aren't looking for maximal performance here. And
                 # 'with labels' isn't super common
                 Ncurves = len(curve['_data'])
+
                 def write_element(e):
                     r'''Writes value to pipe. Encloses strings in "". This is required to support
 labels with spaces in them
@@ -1959,10 +2034,14 @@ labels with spaces in them
 
                     # Numpy 2 broke this (no more np.string_), and this extra
                     # code is needed to work with both numpy 2 and numpy 1
-                    try:    is_string = type(e) is np.string_
-                    except: is_string = False
-                    try:    is_bytes  = type(e) is np.bytes_
-                    except: is_bytes  = False
+                    try:
+                        is_string = type(e) is np.string_
+                    except:
+                        is_string = False
+                    try:
+                        is_bytes = type(e) is np.bytes_
+                    except:
+                        is_bytes = False
                     if is_string or is_bytes or type(e) is np.str_:
                         pipe.write(b'"')
                         pipe.write(str(e).encode())
@@ -1971,20 +2050,19 @@ labels with spaces in them
                         pipe.write(str(e).encode())
 
                 for i in range(curve['_data'][0].shape[-1]):
-                    for j in range(Ncurves-1):
+                    for j in range(Ncurves - 1):
                         write_element(curve['_data'][j][i])
                         pipe.write(b' ')
-                    write_element(curve['_data'][Ncurves-1][i])
+                    write_element(curve['_data'][Ncurves - 1][i])
                     pipe.write(b'\n')
 
-
-                self._printGnuplotPipe( "e\n" )
+                self._printGnuplotPipe("e\n")
 
         else:
-            nps.mv(nps.cat(*curve['_data']), 0, -1).astype(np.float64,copy=False).tofile(pipe)
+            nps.mv(nps.cat(*curve['_data']), 0,
+                   -1).astype(np.float64, copy=False).tofile(pipe)
 
         self._logEvent("Sent the data to child process (not logged)")
-
 
     def _getPlotCmd(self, curves, subplotOptions):
 
@@ -1992,7 +2070,7 @@ labels with spaces in them
             cmd = ''
 
             if 'legend' in curve: cmd += 'title "{}" '.format(curve['legend'])
-            else:                 cmd += 'notitle '
+            else: cmd += 'notitle '
 
             # use the given per-curve 'with' style if there is one. Otherwise fall
             # back on the global
@@ -2006,7 +2084,6 @@ labels with spaces in them
 
             return cmd
 
-
         def binaryFormatcmd(curve):
             # I make 2 formats: one real, and another to test the plot cmd, in case it
             # fails
@@ -2014,13 +2091,12 @@ labels with spaces in them
 
             fmt = ''
             if curve.get('matrix'):
-                fmt += 'binary array=({},{})'.format(curve['_data'][0].shape[-1],
-                                                     curve['_data'][0].shape[-2])
-                fmt += ' format="' + ('%double' * (tuplesize-2)) + '"'
+                fmt += 'binary array=({},{})'.format(
+                    curve['_data'][0].shape[-1], curve['_data'][0].shape[-2])
+                fmt += ' format="' + ('%double' * (tuplesize - 2)) + '"'
             else:
                 fmt += 'binary record=' + str(curve['_data'][0].shape[-1])
                 fmt += ' format="' + ('%double' * tuplesize) + '"'
-
 
             # when doing fancy things, gnuplot can get confused if I don't
             # explicitly tell it the tuplesize. It has its own implicit-tuples
@@ -2032,27 +2108,21 @@ labels with spaces in them
 
             using = curve.get('using')
             if using is None:
-                using = ':'.join(str(x+1) for x in range(using_Ncolumns))
+                using = ':'.join(str(x + 1) for x in range(using_Ncolumns))
             fmt += ' using ' + using
 
             # to test the plot I plot a single record
             fmtTest = fmt
-            fmtTest = re.sub(r'record=\d+',        'record=1',     fmtTest)
+            fmtTest = re.sub(r'record=\d+', 'record=1', fmtTest)
             fmtTest = re.sub(r'array=\(\d+,\d+\)', 'array=(2, 2)', fmtTest)
 
-            return fmt,fmtTest
-
+            return fmt, fmtTest
 
         def getTestDataLen(curve):
             # assuming sizeof(double)==8
             if curve.get('matrix'):
-                return 8 * 2*2*(curve['tuplesize']-2)
+                return 8 * 2 * 2 * (curve['tuplesize'] - 2)
             return 8 * curve['tuplesize']
-
-
-
-
-
 
         basecmd = ''
 
@@ -2060,14 +2130,14 @@ labels with spaces in them
         if subplotOptions.get('3d') and \
            any( 'axes' in curve for curve in curves ):
             raise GnuplotlibError("3d plots cannot have 'axes' specified")
-        if any( curve.get('axes','x')[-1] == '2' for curve in curves ):
+        if any(curve.get('axes', 'x')[-1] == '2' for curve in curves):
             basecmd += "set ytics nomirror\n"
             basecmd += "set y2tics\n"
 
         binwidth = None
         for curve in curves:
             if curve.get('histogram'):
-                binwidth = 1 # default. Used if nothing else is specified
+                binwidth = 1  # default. Used if nothing else is specified
                 if curve.get('binwidth'):
                     binwidth = curve['binwidth']
                     break
@@ -2076,29 +2146,34 @@ labels with spaces in them
                 "set boxwidth {w}\nhistbin(x) = {w} * floor(0.5 + x/{w})\n".format(w=binwidth)
 
         if subplotOptions.get('3d'): basecmd += 'splot '
-        else:                        basecmd += 'plot '
+        else: basecmd += 'plot '
 
         plotCurveCmdsNonDataBefore = []
-        plotCurveCmdsNonDataAfter  = []
-        plotCurveCmds              = []
-        plotCurveCmdsMinimal       = [] # same as above, but with a single data point per plot only
+        plotCurveCmdsNonDataAfter = []
+        plotCurveCmds = []
+        plotCurveCmdsMinimal = [
+        ]  # same as above, but with a single data point per plot only
 
         # send all pre-data equations
         def set_equation(equation, cmds):
             if equation in subplotOptions:
                 cmds += subplotOptions[equation]
 
-        set_equation('equation',       plotCurveCmdsNonDataBefore)
+        set_equation('equation', plotCurveCmdsNonDataBefore)
         set_equation('equation_below', plotCurveCmdsNonDataBefore)
 
         if 'rgbimage' in subplotOptions:
             if not os.access     (subplotOptions['rgbimage'], os.R_OK) or \
                not os.path.isfile(subplotOptions['rgbimage']):
-                raise GnuplotlibError("Requested image '{}' is not a readable file".format(subplotOptions['rgbimage']))
+                raise GnuplotlibError(
+                    "Requested image '{}' is not a readable file".format(
+                        subplotOptions['rgbimage']))
 
-            plotCurveCmdsNonDataBefore.append('"{0}" binary filetype=auto flipy with rgbimage title "{0}"'.format(subplotOptions['rgbimage']))
+            plotCurveCmdsNonDataBefore.append(
+                '"{0}" binary filetype=auto flipy with rgbimage title "{0}"'.
+                format(subplotOptions['rgbimage']))
 
-        testData             = '' # data to make a minimal plot
+        testData = ''  # data to make a minimal plot
 
         for curve in curves:
             optioncmds = optioncmd(curve)
@@ -2109,11 +2184,13 @@ labels with spaces in them
                 # I get 2 formats: one real, and another to test the plot cmd, in case it
                 # fails. The test command is the same, but with a minimal point count. I
                 # also get the number of bytes in a single data point here
-                formatFull,formatMinimal = binaryFormatcmd(curve)
-                Ntestbytes_here          = getTestDataLen(curve)
+                formatFull, formatMinimal = binaryFormatcmd(curve)
+                Ntestbytes_here = getTestDataLen(curve)
 
-                plotCurveCmds       .append( f"'{plot_pipe_name}' {formatFull}    {optioncmds}" )
-                plotCurveCmdsMinimal.append( f"'{plot_pipe_name}' {formatMinimal} {optioncmds}" )
+                plotCurveCmds.append(
+                    f"'{plot_pipe_name}' {formatFull}    {optioncmds}")
+                plotCurveCmdsMinimal.append(
+                    f"'{plot_pipe_name}' {formatMinimal} {optioncmds}")
 
                 # If there was an error, these whitespace commands will simply do
                 # nothing. If there was no error, these are data that will be plotted in
@@ -2131,20 +2208,24 @@ labels with spaces in them
                 # have
                 using = curve.get('using')
                 if using is None:
-                    using = ':'.join(str(x+1) for x in range(curve['tuplesize']))
+                    using = ':'.join(
+                        str(x + 1) for x in range(curve['tuplesize']))
                 using = ' using ' + using
 
                 # I'm using ascii to talk to gnuplot, so the minimal and "normal" plot
                 # commands are the same (point count is not in the plot command)
                 matrix = ''
-                if curve.get('matrix'): matrix =  'matrix'
-                plotCurveCmds.append( f"'{plot_pipe_name}' {matrix} {using} {optioncmds}" )
-                plotCurveCmdsMinimal.append( plotCurveCmds[-1] ) # same testing command
+                if curve.get('matrix'): matrix = 'matrix'
+                plotCurveCmds.append(
+                    f"'{plot_pipe_name}' {matrix} {using} {optioncmds}")
+                plotCurveCmdsMinimal.append(
+                    plotCurveCmds[-1])  # same testing command
 
                 testData_curve = ''
                 if curve.get('matrix'):
                     testmatrix = "{0} {0}\n" + "{0} {0}\n" + "\ne\n"
-                    testData_curve = testmatrix.format(testdataunit_ascii) * (curve['tuplesize'] - 2)
+                    testData_curve = testmatrix.format(testdataunit_ascii) * (
+                        curve['tuplesize'] - 2)
                 else:
                     testData_curve = ' '.join( ['{}'.format(testdataunit_ascii)] * curve['tuplesize']) + \
                     "\n" + "e\n"
@@ -2154,13 +2235,16 @@ labels with spaces in them
         set_equation('equation_above', plotCurveCmdsNonDataAfter)
 
         # the command to make the plot and to test the plot
-        cmd        = basecmd + ','.join(plotCurveCmdsNonDataBefore + plotCurveCmds        + plotCurveCmdsNonDataAfter)
-        cmdMinimal = basecmd + ','.join(plotCurveCmdsNonDataBefore + plotCurveCmdsMinimal + plotCurveCmdsNonDataAfter)
+        cmd = basecmd + ','.join(plotCurveCmdsNonDataBefore + plotCurveCmds +
+                                 plotCurveCmdsNonDataAfter)
+        cmdMinimal = basecmd + ','.join(plotCurveCmdsNonDataBefore +
+                                        plotCurveCmdsMinimal +
+                                        plotCurveCmdsNonDataAfter)
 
         return (cmd, cmdMinimal, testData)
 
-
-    def _massageAndValidateArgs(self, curves, curveOptions_base, subplotOptions):
+    def _massageAndValidateArgs(self, curves, curveOptions_base,
+                                subplotOptions):
 
         # Collect all the passed data into a tuple of lists, one curve per list.
         # The input is either a bunch of numerical arrays, in which we have one
@@ -2173,17 +2257,23 @@ labels with spaces in them
 
         # convert any scalars in the data list
         if len(curves):
-            curves = [ np.array((c,)) if isinstance(c, numbers.Real) else c for c in curves ]
-            if all( isinstance(curve,np.ndarray) for curve in curves):
-                curves = (list(curves),)
+            curves = [
+                np.array((c, )) if isinstance(c, numbers.Real) else c
+                for c in curves
+            ]
+            if all(isinstance(curve, np.ndarray) for curve in curves):
+                curves = (list(curves), )
             elif all(type(curve) is tuple for curve in curves):
                 # we have a list of tuples. I convert this into a list of lists, and
                 # each scalar in each list becomes a numpy array
-                curves = [ [ np.array((c,)) if isinstance(c, numbers.Real) else c
-                             for c in curve ]
-                           for curve in curves ]
+                curves = [[
+                    np.array((c, )) if isinstance(c, numbers.Real) else c
+                    for c in curve
+                ] for curve in curves]
             else:
-                raise GnuplotlibError("all data arguments should be of type ndarray (one curve) or tuples")
+                raise GnuplotlibError(
+                    "all data arguments should be of type ndarray (one curve) or tuples"
+                )
 
         # add an options dict if there isn't one, apply the base curve
         # options to each curve
@@ -2202,7 +2292,7 @@ labels with spaces in them
         def reformat(curve):
 
             if type(curve[-1]) is dict:
-                d     = _normalize_options_dict(curve[-1])
+                d = _normalize_options_dict(curve[-1])
                 curve = curve[:-1]
             else:
                 d = {}
@@ -2210,27 +2300,33 @@ labels with spaces in them
                 if k not in d:
                     d[k] = curveOptions_base[k]
 
-            if all( x.size <= 0 for x in curve ):
+            if all(x.size <= 0 for x in curve):
                 # ALL the data arrays are empty. Throw away the entire curve
                 return None
 
             for x in curve:
                 if x.size <= 0:
                     # SOME of the data ararys are empty. I complain
-                    raise GnuplotlibError("Received data where SOME (but not ALL) of the arrays had length-0. Giving up")
+                    raise GnuplotlibError(
+                        "Received data where SOME (but not ALL) of the arrays had length-0. Giving up"
+                    )
 
             if 'tuplesize' in d and d['tuplesize'] < 0:
                 if len(curve) != 1:
-                    raise GnuplotlibError("tuplesize<0 means that only a single numpy array of data should be given: all data is in this array")
+                    raise GnuplotlibError(
+                        "tuplesize<0 means that only a single numpy array of data should be given: all data is in this array"
+                    )
                 d['tuplesize'] = -d['tuplesize']
-                d['_data']     = list(nps.mv(nps.atleast_dims(curve[0],-2), -1, 0))
+                d['_data'] = list(nps.mv(nps.atleast_dims(curve[0], -2), -1,
+                                         0))
             else:
                 d['_data'] = list(curve)
             return d
-        curves = [ reformat(curve) for curve in curves ]
+
+        curves = [reformat(curve) for curve in curves]
 
         # throw out any "None" curves
-        curves = [ curve for curve in curves if curve is not None ]
+        curves = [curve for curve in curves if curve is not None]
 
         binwidth = None
         for curve in curves:
@@ -2240,18 +2336,20 @@ labels with spaces in them
                 if opt == '_data':
                     continue
                 if not opt in knownCurveOptions:
-                    raise GnuplotlibError("'{}' not a known curve option".format(opt))
+                    raise GnuplotlibError(
+                        "'{}' not a known curve option".format(opt))
 
             axes = curve.get('axes')
             if axes is not None:
                 if not axes in knownAxes:
-                    raise GnuplotlibError(f'"axes" must be one of {knownAxes}, but got {axes=}')
+                    raise GnuplotlibError(
+                        f'"axes" must be one of {knownAxes}, but got {axes=}')
             if curve.get('y2'):
                 if axes is not None:
-                    raise GnuplotlibError('"y2" and "axes" are mutually exclusive')
+                    raise GnuplotlibError(
+                        '"y2" and "axes" are mutually exclusive')
                 del curve['y2']
                 curve['axes'] = 'x1y2'
-
 
             # tuplesize is either given explicitly, or taken from the '3d' plot
             # option. 2d plots default to tuplesize=2 and 3d plots to
@@ -2264,11 +2362,15 @@ labels with spaces in them
                 if subplotOptions.get('3d'):
                     raise GnuplotlibError("histograms don't make sense in 3d")
                 if 'tuplesize' in curve and curve['tuplesize'] != 1:
-                    raise GnuplotlibError("histograms only make sense with tuplesize=1. I'll assume this if you don't specify a tuplesize")
+                    raise GnuplotlibError(
+                        "histograms only make sense with tuplesize=1. I'll assume this if you don't specify a tuplesize"
+                    )
                 curve['tuplesize'] = 1
 
                 if 'using' in curve:
-                    raise GnuplotlibError("'using' cannot be given with 'histogram'. I'll make up my own 'using' in this case")
+                    raise GnuplotlibError(
+                        "'using' cannot be given with 'histogram'. I'll make up my own 'using' in this case"
+                    )
 
                 if type(curve['histogram']) is not str:
                     curve['histogram'] = 'freq'
@@ -2277,7 +2379,8 @@ labels with spaces in them
                 curve['using'] = '(histbin($1)):(1.0) smooth ' + histogram_type
 
                 if 'with' not in curve:
-                    if re.match(r'freq|fnorm', histogram_type) and 'with' not in curve:
+                    if re.match(r'freq|fnorm',
+                                histogram_type) and 'with' not in curve:
                         curve['with'] = 'boxes fill solid border lt -1'
                     else:
                         curve['with'] = 'lines'
@@ -2290,7 +2393,8 @@ labels with spaces in them
 
             else:
                 if 'binwidth' in curve:
-                    raise GnuplotlibError("'binwidth' only makes sense with 'histogram'")
+                    raise GnuplotlibError(
+                        "'binwidth' only makes sense with 'histogram'")
 
             if not 'tuplesize' in curve:
                 curve['tuplesize'] = 3 if subplotOptions.get('3d') else 2
@@ -2303,16 +2407,18 @@ labels with spaces in them
                 # I got fewer data elements than I expected. Set up the implicit
                 # domain if that makes sense
 
-                if Ndata+1 == curve['tuplesize']:
+                if Ndata + 1 == curve['tuplesize']:
 
                     # A plot is one data element short. Fill in a sequential
                     # domain 0,1,2,...
-                    curve['_data'].insert(0, np.arange(curve['_data'][0].shape[-1]))
+                    curve['_data'].insert(
+                        0, np.arange(curve['_data'][0].shape[-1]))
 
-                elif Ndata+2 == curve['tuplesize']:
+                elif Ndata + 2 == curve['tuplesize']:
                     # a plot is 2 elements short. Use a grid as a domain. I simply set the
                     # 'matrix' flag and have gnuplot deal with it later
-                    if self.processOptions.get('ascii') and curve['tuplesize'] > 3:
+                    if self.processOptions.get(
+                            'ascii') and curve['tuplesize'] > 3:
                         raise GnuplotlibError( \
                             "Can't make more than 3-dimensional plots on a implicit 2D domain\n" + \
                             "when sending ASCII data. I don't think gnuplot supports this. Use binary data\n" + \
@@ -2324,8 +2430,6 @@ labels with spaces in them
                     raise GnuplotlibError( \
                         "plot() needed {} data arrays, but only got {}".format(curve['tuplesize'],Ndata))
 
-
-
             # The curve is now set up. I look at the input matrices to make sure
             # the dimensions line up
 
@@ -2334,7 +2438,9 @@ labels with spaces in them
             for datum in curve['_data']:
 
                 if curve.get('matrix') and datum.ndim < 2:
-                    raise GnuplotlibError("Tried to plot against an implicit 2D domain, but was given less than 2D data")
+                    raise GnuplotlibError(
+                        "Tried to plot against an implicit 2D domain, but was given less than 2D data"
+                    )
 
                 def checkdim(idim):
                     dim_here = datum.shape[-1 - idim]
@@ -2350,39 +2456,42 @@ labels with spaces in them
                 if curve.get('matrix'):
                     checkdim(1)
 
-
         # broadcast through the arguments AND all the options that are arrays
         curves_flattened = []
         for curve in curves:
             ndims_input = 2 if curve.get('matrix') else 1
-            prototype_onearg = tuple('n{}'.format(i) for i in range(ndims_input))
-            prototype = (prototype_onearg,) * len(curve['_data'])
+            prototype_onearg = tuple('n{}'.format(i)
+                                     for i in range(ndims_input))
+            prototype = (prototype_onearg, ) * len(curve['_data'])
 
             # grab all option keys that have numpy arrays as values. I broadcast
             # these as well
-            np_options_keys = [ k for k in curve.keys()
-                                if isinstance(curve[k], np.ndarray) ]
+            np_options_keys = [
+                k for k in curve.keys() if isinstance(curve[k], np.ndarray)
+            ]
             N_options_keys = len(np_options_keys)
-            prototype_np_options = ((),) * N_options_keys
+            prototype_np_options = ((), ) * N_options_keys
 
-            for args in nps.broadcast_generate( prototype + prototype_np_options,
-                                                curve['_data'] + list(curve[k] for k in np_options_keys)):
+            for args in nps.broadcast_generate(
+                    prototype + prototype_np_options,
+                    curve['_data'] + list(curve[k] for k in np_options_keys)):
 
                 # make a copy of the options
                 curve_slice = dict(curve)
 
                 # replace the data with the slice
-                curve_slice['_data'] = args[:-N_options_keys] if N_options_keys else args
+                curve_slice[
+                    '_data'] = args[:-N_options_keys] if N_options_keys else args
 
                 for ikey in range(N_options_keys):
-                    curve_slice[np_options_keys[ikey]] = args[-N_options_keys + ikey]
+                    curve_slice[np_options_keys[ikey]] = args[-N_options_keys +
+                                                              ikey]
 
-                curves_flattened.append( curve_slice )
+                curves_flattened.append(curve_slice)
 
         curves = curves_flattened
 
         return curves
-
 
     def wait(self):
         r'''Waits until the open interactive plot window is closed
@@ -2397,12 +2506,10 @@ labels with spaces in them
         self._logEvent("Waiting for data from gnuplot")
         self._checkpoint('waitforever')
 
-
     def plot(self, *curves, **jointOptions):
         r'''Main gnuplotlib API entry point'''
 
         is_multiplot = self.processOptions.get('multiplot')
-
 
         def test_plot(testcmd, testdata):
             '''Test the plot command by making a dummy plot with the test command.'''
@@ -2410,15 +2517,17 @@ labels with spaces in them
             # I send a test plot command. Gnuplot implicitly uses && if multiple
             # commands are present on the same line. Thus if I see the post-plot print
             # in the output, I know the plot command succeeded
-            self._printGnuplotPipe( testcmd + "\n" )
-            self._printGnuplotPipe( testdata )
+            self._printGnuplotPipe(testcmd + "\n")
+            self._printGnuplotPipe(testdata)
 
-            checkpointMessage,warnings = self._checkpoint('ignore_known_test_failures')
+            checkpointMessage, warnings = self._checkpoint(
+                'ignore_known_test_failures')
             if checkpointMessage:
                 # There's a checkpoint message. I explicitly ignored and threw away all
                 # errors that are allowed to occur during a test. Anything leftover
                 # implies a plot failure.
-                barfmsg = "Gnuplot error: '\n{}\n' while sending plotcmd '{}'\n".format(checkpointMessage, testcmd)
+                barfmsg = "Gnuplot error: '\n{}\n' while sending plotcmd '{}'\n".format(
+                    checkpointMessage, testcmd)
                 if warnings:
                     barfmsg += "Warnings:\n" + "\n".join(warnings)
                 raise GnuplotlibError(barfmsg)
@@ -2434,7 +2543,7 @@ labels with spaces in them
             # number of data points
 
             if self.processOptions.get('terminal') == 'gp':
-                self._dumpPipe = open(self.processOptions['output'],'w')
+                self._dumpPipe = open(self.processOptions['output'], 'w')
                 os.chmod(self.processOptions['output'], 0o755)
 
                 import distutils.spawn
@@ -2448,8 +2557,9 @@ labels with spaces in them
                 self._safelyWriteToPipe(self.processOptionsCmds)
 
                 if 'terminal' in self.processOptions:
-                    self._safelyWriteToPipe("set terminal " + self.processOptions['terminal'],
-                                            'terminal')
+                    self._safelyWriteToPipe(
+                        "set terminal " + self.processOptions['terminal'],
+                        'terminal')
 
                 # I always set the output. If no plot option explicitly is given then I
                 # either "set output" for a known interactive terminal, or redirect to
@@ -2457,34 +2567,37 @@ labels with spaces in them
                 if 'output' in self.processOptions:
                     if self.processOptions['output'] != '':
                         # user requested an explicit output
-                        self._safelyWriteToPipe('set output "' + self.processOptions['output'] + '"',
-                                                'output')
+                        self._safelyWriteToPipe(
+                            'set output "' + self.processOptions['output'] +
+                            '"', 'output')
                     else:
                         # user requested null output
-                        self._safelyWriteToPipe('set output',
-                                                'output')
+                        self._safelyWriteToPipe('set output', 'output')
                 else:
                     # user requested nothing. Is this a known interactive terminal or an
                     # unspecified terminal (unspecified terminal assumed to be
                     # interactive)? Then set the null output
                     if 'terminal' not in self.processOptions or \
                        is_knownInteractiveTerminal(self.processOptions['terminal']):
-                        self._safelyWriteToPipe('set output',
-                                                'output')
+                        self._safelyWriteToPipe('set output', 'output')
                     else:
                         if not _data_dump_only(self.processOptions):
                             if self.fdDupSTDOUT is None:
-                                raise GnuplotlibError("I need to plot to STDOUT, but STDOUT wasn't available")
-                            self.processOptions['output'] = '/dev/fd/' + str(self.fdDupSTDOUT)
+                                raise GnuplotlibError(
+                                    "I need to plot to STDOUT, but STDOUT wasn't available"
+                                )
+                            self.processOptions['output'] = '/dev/fd/' + str(
+                                self.fdDupSTDOUT)
                         else:
                             self.processOptions['output'] = '/dev/fd/DUMPONLY'
-                        self._safelyWriteToPipe('set output "' + self.processOptions['output'] + '"',
-                                                'output')
+                        self._safelyWriteToPipe(
+                            'set output "' + self.processOptions['output'] +
+                            '"', 'output')
 
         def plot_subplot(plotcmd, curves):
 
             # all done. make the plot
-            self._printGnuplotPipe( plotcmd + "\n")
+            self._printGnuplotPipe(plotcmd + "\n")
 
             for curve in curves:
                 self._sendCurve(curve)
@@ -2562,7 +2675,8 @@ labels with spaces in them
             # process before it has time to do anything
             self._checkpoint('final printwarnings')
 
-        def ingest_joint_options(jointOptions, subplotOptions_base, curveOptions_base):
+        def ingest_joint_options(jointOptions, subplotOptions_base,
+                                 curveOptions_base):
             '''Takes in a set of joint options, and overrides a given base
 
             I have a some default plot,curve options that came from above
@@ -2584,37 +2698,35 @@ labels with spaces in them
             curveOptions = dict(curveOptions_base)
             curveOptions.update(curveOptions_here)
 
-            return subplotOptions,curveOptions
+            return subplotOptions, curveOptions
 
-        def make_subplot_data(subplotOptions_base,
-                              curveOptions_base,
-                              *curves, **jointOptions):
+        def make_subplot_data(subplotOptions_base, curveOptions_base, *curves,
+                              **jointOptions):
 
             subplotOptions,curveOptions = \
                 ingest_joint_options( _normalize_options_dict(jointOptions),
                                       subplotOptions_base,
                                       curveOptions_base )
 
-            subplotOptionsCmds = _massageSubplotOptionsAndGetCmds(subplotOptions)
+            subplotOptionsCmds = _massageSubplotOptionsAndGetCmds(
+                subplotOptions)
 
-            curves = self._massageAndValidateArgs(curves,
-                                                  curveOptions,
+            curves = self._massageAndValidateArgs(curves, curveOptions,
                                                   subplotOptions)
-            plotcmd_testcmd_testdata = self._getPlotCmd( curves, subplotOptions )
-            return (curves,
-                    subplotOptionsCmds,
-                    plotcmd_testcmd_testdata[0],
-                    plotcmd_testcmd_testdata[1],
-                    plotcmd_testcmd_testdata[2],)
-
-
-
+            plotcmd_testcmd_testdata = self._getPlotCmd(curves, subplotOptions)
+            return (
+                curves,
+                subplotOptionsCmds,
+                plotcmd_testcmd_testdata[0],
+                plotcmd_testcmd_testdata[1],
+                plotcmd_testcmd_testdata[2],
+            )
 
         if not is_multiplot:
             # basic case
-            subplots = ( make_subplot_data( self.subplotOptions_base,
-                                            self.curveOptions_base,
-                                            *curves, **jointOptions), )
+            subplots = (make_subplot_data(self.subplotOptions_base,
+                                          self.curveOptions_base, *curves,
+                                          **jointOptions), )
         else:
             # OK, this actually isn't just a plot, so the arguments are misnamed
             subplots = curves
@@ -2631,12 +2743,12 @@ labels with spaces in them
                 else:
                     d = {}
                 return make_subplot_data(subplotOptions_base,
-                                         curveOptions_base,
-                                         *subplot, **d)
-            subplots = [make_subplot_data_embedded_kwargs(subplot) for subplot in subplots]
+                                         curveOptions_base, *subplot, **d)
 
-
-
+            subplots = [
+                make_subplot_data_embedded_kwargs(subplot)
+                for subplot in subplots
+            ]
 
         # Test the plot
         if not self.processOptions.get('notest'):
@@ -2646,13 +2758,13 @@ labels with spaces in them
             # stdout output, then eventually the buffer fills up and gnuplot blocks.
             # So keep it going to /dev/null, or make sure to read the test plot from
             # stdout
-            self._printGnuplotPipe( "set output '/dev/null'\n" )
-            self._printGnuplotPipe( "set terminal dumb\n" )
+            self._printGnuplotPipe("set output '/dev/null'\n")
+            self._printGnuplotPipe("set terminal dumb\n")
 
             if self.processOptions.get('multiplot'):
                 self._safelyWriteToPipe('set multiplot ' + \
                                         (self.processOptions['multiplot'] if type(self.processOptions['multiplot']) is str else ''))
-            for curves,subplotOptionsCmds,plotcmd,testcmd,testdata in subplots:
+            for curves, subplotOptionsCmds, plotcmd, testcmd, testdata in subplots:
                 if self.processOptions.get('multiplot'):
                     # we're multiplotting, so I need to wipe the slate clean so
                     # that other subplots don't affect this one
@@ -2663,7 +2775,8 @@ labels with spaces in them
                 self._safelyWriteToPipe('unset multiplot')
 
             # select the default terminal in case that's what we want
-            self._safelyWriteToPipe("set terminal pop; set terminal push", 'terminal')
+            self._safelyWriteToPipe("set terminal pop; set terminal push",
+                                    'terminal')
 
         # Testing done. Actually do the thing now
         plot_process_header()
@@ -2671,28 +2784,22 @@ labels with spaces in them
         if self.processOptions.get('multiplot'):
             self._safelyWriteToPipe('set multiplot ' + \
                                     (self.processOptions['multiplot'] if type(self.processOptions['multiplot']) is str else ''))
-        for curves,subplotOptionsCmds,plotcmd,testcmd,testdata in subplots:
+        for curves, subplotOptionsCmds, plotcmd, testcmd, testdata in subplots:
             if self.processOptions.get('multiplot'):
                 # we're multiplotting, so I need to wipe the slate clean so that
                 # other subplots don't affect this one
                 self._safelyWriteToPipe('reset')
             self._safelyWriteToPipe(subplotOptionsCmds)
-            plot_subplot(plotcmd,curves)
+            plot_subplot(plotcmd, curves)
         # I don't "unset multiplot" here. That would make my plot go away
 
         plot_process_footer()
 
 
-
-
-
-
-
-
 globalplot = None
 
-def plot(*curves, **jointOptions):
 
+def plot(*curves, **jointOptions):
     r'''A simple wrapper around class gnuplotlib
 
     SYNOPSIS
@@ -2770,9 +2877,7 @@ def plot(*curves, **jointOptions):
 
     '''
 
-
     global globalplot
-
 
     # I make a brand new gnuplot process if necessary. If one already exists, I
     # re-initialize it. If we're doing a data dump then I also create a new
@@ -2786,7 +2891,6 @@ def plot(*curves, **jointOptions):
 
 
 def plot3d(*curves, **jointOptions):
-
     r'''A simple wrapper around class gnuplotlib to make 3d plots
 
     SYNOPSIS
@@ -2813,7 +2917,6 @@ def plot3d(*curves, **jointOptions):
 
 
 def plotimage(*curves, **jointOptions):
-
     r'''A simple wrapper around class gnuplotlib to plot image maps
 
     SYNOPSIS
@@ -2834,7 +2937,7 @@ def plotimage(*curves, **jointOptions):
 
     '''
 
-    jointOptions['_with']     = 'image'
+    jointOptions['_with'] = 'image'
     jointOptions['tuplesize'] = 3
     plot(*curves, **jointOptions)
 
@@ -2885,13 +2988,15 @@ def wait(*args):
     if len(args) == 0:
         if not globalplot:
             raise GnuplotlibError("There isn't a plot to wait on")
-        plots = (globalplot,)
-    elif all(isinstance(p,gnuplotlib) for p in args):
+        plots = (globalplot, )
+    elif all(isinstance(p, gnuplotlib) for p in args):
         plots = args
     elif len(args) == 1:
         plots = args[0]
     else:
-        raise Exception("gnuplotlib.wait() takes an inline list of plots or a single list-of-plots argumnent. Got neither")
+        raise Exception(
+            "gnuplotlib.wait() takes an inline list of plots or a single list-of-plots argumnent. Got neither"
+        )
 
     if len(plots) == 1:
         # Special-case if we have exactly one plot to wait on. Can avoid forking
@@ -2901,7 +3006,7 @@ def wait(*args):
 
     # N plots
     pids = [0] * len(plots)
-    for i,plot in enumerate(plots):
+    for i, plot in enumerate(plots):
         pid = os.fork()
         if pid == 0:
             # child
@@ -2909,14 +3014,10 @@ def wait(*args):
             os._exit(0)
         pids[i] = pid
     for pid in pids:
-        os.waitpid(pid,0)
+        os.waitpid(pid, 0)
 
 
-def add_plot_option(d,
-                    key       = None,
-                    values    = None,
-                    overwrite = None,
-                    **kwargs):
+def add_plot_option(d, key=None, values=None, overwrite=None, **kwargs):
     r'''Ingests new key/value pairs into an option dict
 
 SYNOPSIS
@@ -2974,11 +3075,9 @@ ARGUMENTS
     '''
 
     if kwargs:
-        add_plot_option(d, key, values,
-                        overwrite)
+        add_plot_option(d, key, values, overwrite)
         for key in kwargs:
-            add_plot_option(d, key, kwargs[key],
-                            overwrite)
+            add_plot_option(d, key, kwargs[key], overwrite)
         return
 
     if key is None:
@@ -2986,53 +3085,57 @@ ARGUMENTS
             raise Exception("key is None, but values is not. Giving up")
         return
 
-
     key_normalized = key if key[0] != '_' else key[1:]
     if not (key_normalized in keysAcceptingIterable and \
             isinstance(values, (list,tuple))):
-        values = (values,)
+        values = (values, )
 
     values = [v for v in values if v is not None]
     if len(values) == 0: return
 
     if key_normalized not in keysAcceptingIterable:
         if len(values) > 1:
-            raise GnuplotlibError("plot options given multiple values for key '{}'".format(key_normalized))
+            raise GnuplotlibError(
+                "plot options given multiple values for key '{}'".format(
+                    key_normalized))
         if key in d or key_normalized in d:
             # A value already exists. What do I do?
-            if   (overwrite is not None) and overwrite:
+            if (overwrite is not None) and overwrite:
                 pass
             elif (overwrite is not None) and not overwrite:
                 return
             else:
                 # overwrite is None (the default). Barf.
-                raise GnuplotlibError("plot options already have a value for key '{}'. Pass 'overwrite=False' to use the existing one of 'overwrite=True' to use the new one".format(key_normalized))
+                raise GnuplotlibError(
+                    "plot options already have a value for key '{}'. Pass 'overwrite=False' to use the existing one of 'overwrite=True' to use the new one"
+                    .format(key_normalized))
 
         d[key_normalized] = values[0]
 
     else:
+
         def listify(v):
-            if isinstance(v, (list,tuple)): return v
+            if isinstance(v, (list, tuple)): return v
             return [v]
-        def accum(k,v):
+
+        def accum(k, v):
             try:
                 v += listify(d[k])
                 del d[k]
-            except KeyError: pass
+            except KeyError:
+                pass
 
         v = []
-        accum(key,v)
+        accum(key, v)
         if key != key_normalized:
-            accum(key_normalized,v)
+            accum(key_normalized, v)
 
         d[key_normalized] = v + values
 
 
-
-
 if __name__ == '__main__':
 
-    import numpy      as np
+    import numpy as np
     import gnuplotlib as gp
     import time
 
@@ -3040,27 +3143,25 @@ if __name__ == '__main__':
     gp.plot(x**2, dump=0, ascii=0)
     time.sleep(1)
 
-
-    g1 = gp.gnuplotlib(title = 'Parabola with error bars',
-                       _with = 'xyerrorbars')
-    g1.plot( x**2 * 10, np.abs(x)/10, np.abs(x)*5,
-             legend    = 'Parabola',
-             tuplesize = 4 )
+    g1 = gp.gnuplotlib(title='Parabola with error bars', _with='xyerrorbars')
+    g1.plot(x**2 * 10,
+            np.abs(x) / 10,
+            np.abs(x) * 5,
+            legend='Parabola',
+            tuplesize=4)
     time.sleep(5)
 
-
-    x,y = np.ogrid[-10:11,-10:11]
-    gp.plot( x**2 + y**2,
-             title     = 'Heat map',
-             set       = 'view map',
-             _with     = 'image',
-             tuplesize = 3)
+    x, y = np.ogrid[-10:11, -10:11]
+    gp.plot(x**2 + y**2,
+            title='Heat map',
+            set='view map',
+            _with='image',
+            tuplesize=3)
     time.sleep(5)
 
-
-    theta = np.linspace(0, 6*np.pi, 200)
-    z     = np.linspace(0, 5,       200)
-    g2 = gp.gnuplotlib(_3d = True)
-    g2.plot( (np.cos(theta),  np.sin(theta), z),
-             (np.cos(theta), -np.sin(theta), z))
+    theta = np.linspace(0, 6 * np.pi, 200)
+    z = np.linspace(0, 5, 200)
+    g2 = gp.gnuplotlib(_3d=True)
+    g2.plot((np.cos(theta), np.sin(theta), z),
+            (np.cos(theta), -np.sin(theta), z))
     time.sleep(60)
